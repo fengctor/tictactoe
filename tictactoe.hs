@@ -102,8 +102,7 @@ getNat prompt = do putStr prompt
                    if xs /= [] && all isDigit xs then
                       return (read xs)
                    else
-                      do putStrLn "ERROR: Invalid number"
-                         getNat prompt
+                      putStrLn "ERROR: Invalid number" >>= (const $ getNat prompt)
 
 prompt :: Player -> String
 prompt p = "Player " ++ show p ++ ", enter your move: "
@@ -176,10 +175,8 @@ play' :: Int -> Grid -> Player -> IO ()
 play' depth g p | wins O g = putStrLn "Player O wins!\n"
                 | wins X g = putStrLn "Player X wins!\n"
                 | full g   = putStrLn "It's a draw!\n"
-                | p == O   = do i <- getNat (prompt p)
-                                case move g i p of
-                                  [] -> do putStrLn "ERROR: Invalid move"
-                                           play' depth g p
-                                  [g'] -> play depth g' (next p)
-                | p == X   = do putStr "Player X is thinking... "
-                                (play depth $! (bestmove depth g p)) (next p)
+                | p == O   = getNat (prompt p) >>= \i ->
+                               case move g i p of
+                                 []   -> putStrLn "ERROR: Invalid move" >>= (const $ play' depth g p)
+                                 [g'] -> play depth g' (next p)
+                | p == X   = putStr "Player X is thinking... " >>= (const $ (play depth $! (bestmove depth g p)) (next p))
