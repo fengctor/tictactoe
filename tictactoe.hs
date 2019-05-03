@@ -1,6 +1,7 @@
 import Data.Char
 import Data.List
 import System.IO
+import Control.Monad
 
 -- Board dimensions
 size :: Int
@@ -31,7 +32,7 @@ empty = replicate size (replicate size B)
 
 -- Checks if grid has been filled completely
 full :: Grid -> Bool
-full = all (/= B) . concat
+full = all (/= B) . join
 
 -- Determines whose turn it is
 turn :: Grid -> Player
@@ -39,7 +40,7 @@ turn g = if os <= xs then O else X
   where
     os = length (filter (== O) ps)
     xs = length (filter (== X) ps)
-    ps = concat g
+    ps = join g
 
 -- Determines if a given player has won
 wins :: Player -> Grid -> Bool
@@ -59,7 +60,7 @@ won g = wins O g || wins X g
 
 -- Prints a grid to the screen
 putGrid :: Grid -> IO ()
-putGrid = putStrLn . unlines . concat . interleave bar . map showRow
+putGrid = putStrLn . unlines . join . interleave bar . map showRow
   where
     bar = [replicate ((size*4)-1) '-']
 
@@ -81,13 +82,13 @@ interleave x (y:ys) = y : x : interleave x ys
 
 -- Determines if a given index is a valid move
 valid :: Grid -> Int -> Bool
-valid g i = 0 <= i && i < size^2 && concat g !! i == B
+valid g i = 0 <= i && i < size^2 && join g !! i == B
 
 -- Performs a move and produces a singleton list containing the new Grid if valid,
 --   otherwise returns the empty list
 move :: Grid -> Int -> Player -> [Grid]
 move g i p = if valid g i then [chop size (xs ++ [p] ++ ys)] else []
-  where (xs,_:ys) = splitAt i (concat g)
+  where (xs,_:ys) = splitAt i $ join g
 
 chop :: Int -> [a] -> [[a]]
 chop _ [] = []
@@ -121,7 +122,7 @@ gametree g p = Node g [gametree g' (next p) | g' <- moves g p]
 moves :: Grid -> Player -> [Grid]
 moves g p | won g = []
           | full g = []
-          | otherwise = concat [move g i p | i <- [0..((size^2)-1)]]
+          | otherwise = join [move g i p | i <- [0..((size^2)-1)]]
 
 prune :: Int -> Tree a -> Tree a
 prune 0 (Node x _)  = Node x []
@@ -141,7 +142,7 @@ minimax (Node g ts) | turn g == O = Node (g, minimum ps) ts'
 -- assumes list is nonempty
 findextreme :: (a -> Int) -> (Int -> Int -> Bool) -> [a] -> a
 findextreme f cmp (x:xs) =
-  snd (foldl (\a c -> if cmp (f c) (fst a) then (f c,c) else a) (f x,x) xs)
+  snd (foldl' (\a c -> if cmp (f c) (fst a) then (f c,c) else a) (f x,x) xs)
 
 bestmove :: Int -> Grid -> Player -> Grid
 bestmove depth g p = bg
@@ -153,17 +154,17 @@ bestmove depth g p = bg
 
 main :: IO ()
 main = do hSetBuffering stdout NoBuffering
+          putStrLn "Choose a difficulty from 1-3:"
           depth <- promptDepth
           play depth empty O
 
 promptDepth :: IO Int
-promptDepth = do putStrLn "Choose a difficulty from 1-3"
-                 line <- getLine
-                 case line of
-                   "1" -> return 2
-                   "2" -> return 5
-                   "3" -> return 9
-                   _   -> putStrLn "Invalid choice." >>= const promptDepth
+promptDepth = getLine >>= \line ->
+                case line of
+                  "1" -> return 2
+                  "2" -> return 5
+                  "3" -> return 9
+                  _   -> putStrLn "Invalid choice. Please choose a difficulty from 1-3:" >>= const promptDepth
 
 play :: Int -> Grid -> Player -> IO ()
 play depth g p = do cls
