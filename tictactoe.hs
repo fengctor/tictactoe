@@ -156,7 +156,6 @@ main = do hSetBuffering stdout NoBuffering
           depth <- promptDepth
           play depth empty O
 
--- Todo: use readMaybe
 promptDepth :: IO Int
 promptDepth = do putStrLn "Choose a difficulty from 1-3"
                  line <- getLine
