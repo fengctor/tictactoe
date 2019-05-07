@@ -132,11 +132,13 @@ minimax :: Tree Grid -> Tree (Grid,Player)
 minimax (Node g []) | wins O g  = Node (g,O) []
                     | wins X g  = Node (g,X) []
                     | otherwise = Node (g,B) []
-minimax (Node g ts) | turn g == O = Node (g, minimum ps) ts'
-                    | turn g == X = Node (g, maximum ps) ts'
+minimax (Node g ts) = Node (g, rs) ts'
   where
     ts' = map minimax ts
     ps = [p | Node (_,p) _ <- ts']
+    rs = case turn g of
+           O -> minimum ps
+           X -> maximum ps
 
 -- assumes list is nonempty
 findextreme :: (a -> Int) -> (Int -> Int -> Bool) -> [a] -> a
