@@ -112,6 +112,12 @@ prompt p = "Player " ++ show p ++ ", enter your move: "
 data Tree a = Node a [Tree a]
             deriving Show
 
+instance Functor Tree where
+  fmap f (Node x xs) = Node (f x) $ (fmap . fmap) f xs
+
+instance Foldable Tree where
+  foldMap f (Node x xs) = (f x) <> (mconcat (fmap (foldMap f) xs))
+
 treesize :: Tree a -> Int
 treesize (Node _ xs) = foldl (\a c -> a + treesize c) 1 xs
 
